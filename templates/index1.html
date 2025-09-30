@@ -2,6 +2,75 @@
 
 {% block content %}
 <div class="row">
+    <div class="col-md-12">
+        <!-- Tareas Activas -->
+        {% if active_tasks %}
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h5>🔄 Procesos en Curso</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for task_id, task in active_tasks.items() %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ task.task_name }}</h6>
+                                <p class="card-text">
+                                    <small>Archivo: {{ task.video_file }}</small><br>
+                                    <small>{{ task.current_action }}</small>
+                                </p>
+                                
+                                {% if task.status == 'processing' %}
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" 
+                                         style="width: {{ (task.completed_segments / task.total_segments * 100) | round }}%">
+                                        {{ task.completed_segments }}/{{ task.total_segments }} segmentos
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">
+                                        Progreso: {{ (task.completed_segments / task.total_segments * 100) | round }}%
+                                    </small>
+                                </div>
+                                {% elif task.status == 'completed' %}
+                                <div class="alert alert-success py-2 mb-2">
+                                    <small>✅ Completado</small>
+                                </div>
+                                <div class="mt-2">
+                                    <strong>Archivos generados:</strong>
+                                    <div class="mt-1">
+                                        {% for file in task.segment_files %}
+                                        <a href="{{ url_for('download_file', filename=file) }}" 
+                                           class="btn btn-sm btn-success mb-1">
+                                           📥 {{ file }}
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% elif task.status == 'error' %}
+                                <div class="alert alert-danger py-2">
+                                    <small>❌ Error: {{ task.error }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center">
+                    <a href="{{ url_for('cleanup_completed') }}" class="btn btn-sm btn-outline-secondary">
+                        Limpiar Completados
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
@@ -17,7 +86,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card mt-4">
             <div class="card-header">
                 <h5>Videos Disponibles</h5>
             </div>
@@ -58,7 +127,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card mt-4">
             <div class="card-header">
                 <h5>Archivos Procesados</h5>
             </div>
@@ -85,4 +154,14 @@
         </div>
     </div>
 </div>
+
+<!-- Script para actualizar automáticamente el progreso -->
+{% if active_tasks %}
+<script>
+// Actualizar automáticamente cada 5 segundos cuando hay tareas activas
+setTimeout(() => {
+    window.location.reload();
+}, 5000);
+</script>
+{% endif %}
 {% endblock %}
