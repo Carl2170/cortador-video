@@ -218,6 +218,83 @@ def process_video1():
     
     return render_template('process1.html', video_files=get_video_files())
 
+@app.route('/corte_1video', methods=['GET', 'POST'])
+def corte_1video():
+    if request.method == 'POST':
+        video_filename = request.form.get('video_file')
+        start_time = int(request.form.get('start_time', 305))
+        segment_duration = int(request.form.get('duration', 29))
+        
+        if not video_filename:
+            flash('Por favor selecciona un video')
+            return redirect(url_for('corte_1video'))
+        
+        # Buscar el archivo
+        filepath = None
+        possible_paths = [
+            os.path.join(UPLOAD_FOLDER, video_filename),
+            video_filename,
+            os.path.join(os.getcwd(), video_filename)
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                filepath = path
+                break
+        
+        if not filepath:
+            flash('No se encontró el archivo de video')
+            return redirect(url_for('corte_1video'))
+        
+        # Generar ID de tarea
+        task_id = generate_task_id()
+        
+        try:
+            video = VideoFileClip(filepath)
+            end_time = start_time + segment_duration
+            
+            if end_time > video.duration:
+                end_time = video.duration
+            
+            # Guardar progreso inicial
+            progress_data = {
+                'task_name': 'Corte Único',
+                'video_file': video_filename,
+                'start_time': start_time,
+                'end_time': end_time,
+                'status': 'processing',
+                'start_time_task': datetime.now().isoformat(),
+                'current_action': f'Creando corte de {start_time}s a {end_time}s'
+            }
+            save_progress(task_id, progress_data)
+            
+            video_corte = video.subclip(start_time, end_time)
+            output_filename = f'corte_unico_{start_time}_{end_time}.mp4'
+            output_path = os.path.join(PROCESSED_FOLDER, output_filename)
+            
+            video_corte.write_videofile(output_path, codec="libx264", verbose=False, logger=None)
+            video.close()
+            video_corte.close()
+            
+            # Marcar como completado
+            progress_data['status'] = 'completed'
+            progress_data['output_file'] = output_filename
+            progress_data['end_time_task'] = datetime.now().isoformat()
+            save_progress(task_id, progress_data)
+            
+            flash('Corte único creado correctamente')
+            
+        except Exception as e:
+            # Marcar como error
+            progress_data['status'] = 'error'
+            progress_data['error'] = str(e)
+            save_progress(task_id, progress_data)
+            flash(f'Error al crear el corte: {str(e)}')
+        
+        return redirect(url_for('index'))
+    
+    return render_template('corte1.html', video_files=get_video_files())
+
 @app.route('/process_video', methods=['GET', 'POST'])
 def process_video():
     if request.method == 'POST':
@@ -322,7 +399,22 @@ def process_video():
     
     return render_template('process_video.html', video_files=get_video_files())
 
-# ... (mantén las otras funciones igual: corte_1video, download_file, delete_file, etc.)
+@app.route('/download/<filename>')
+def download_file(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    else:
+        flash('Archivo no encontrado')
+        return redirect(url_for('index'))
+
+@app.route('/delete/<filename>')
+def delete_file(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        flash('Archivo eliminado correctamente')
+    return redirect(url_for('index'))
 
 @app.route('/progress/<task_id>')
 def get_task_progress(task_id):
@@ -356,4 +448,19 @@ def cleanup_completed():
     
     return redirect(url_for('index'))
 
-# ... (mantén el resto de las funciones igual)
+@app.route('/api/files')
+def api_files():
+    return jsonify({
+        'video_files': get_video_files(),
+        'processed_files': get_processed_files()
+    })
+
+@app.route('/delete_task/<task_id>')
+def delete_task(task_id):
+    """Eliminar una tarea específica del progreso"""
+    delete_progress(task_id)
+    flash('Tarea eliminada del historial de progreso')
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True)
