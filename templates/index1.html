@@ -3,90 +3,45 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        <!-- Tareas Activas -->
-        {% if active_tasks %}
-        <div class="card mb-4">
-            <div class="card-header bg-warning">
-                <h5>🔄 Procesos en Curso</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for task_id, task in active_tasks.items() %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ task.task_name }}</h6>
-                                <p class="card-text">
-                                    <small>Archivo: {{ task.video_file }}</small><br>
-                                    <small>{{ task.current_action }}</small>
-                                </p>
-                                
-                                {% if task.status == 'processing' %}
-                                <div class="progress mb-2">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                         role="progressbar" 
-                                         style="width: {{ (task.completed_segments / task.total_segments * 100) | round }}%">
-                                        {{ task.completed_segments }}/{{ task.total_segments }} segmentos
-                                    </div>
-                                </div>
-                                <div class="text-center">
-                                    <small class="text-muted">
-                                        Progreso: {{ (task.completed_segments / task.total_segments * 100) | round }}%
-                                    </small>
-                                </div>
-                                {% elif task.status == 'completed' %}
-                                <div class="alert alert-success py-2 mb-2">
-                                    <small>✅ Completado</small>
-                                </div>
-                                <div class="mt-2">
-                                    <strong>Archivos generados:</strong>
-                                    <div class="mt-1">
-                                        {% for file in task.segment_files %}
-                                        <a href="{{ url_for('download_file', filename=file) }}" 
-                                           class="btn btn-sm btn-success mb-1">
-                                           📥 {{ file }}
-                                        </a>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                {% elif task.status == 'error' %}
-                                <div class="alert alert-danger py-2">
-                                    <small>❌ Error: {{ task.error }}</small>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+        <h3>Tareas en proceso</h3>
+        <div id="active-tasks">
+            {% for task_id, task in active_tasks.items() %}
+            <div class="task" id="task-{{ task_id }}">
+                <p><strong>{{ task['task_name'] }}</strong> - {{ task['video_file'] }}</p>
+                <div class="progress" style="width: 400px; height: 20px; border: 1px solid #ccc;">
+                    <div class="progress-bar" id="progress-{{ task_id }}" style="width: 0%; height: 100%; background: #4caf50;"></div>
                 </div>
-                <div class="text-center">
-                    <a href="{{ url_for('cleanup_completed') }}" class="btn btn-sm btn-outline-secondary">
-                        Limpiar Completados
-                    </a>
-                </div>
+                <p id="progress-text-{{ task_id }}">{{ task.get('current_action','Esperando...') }}</p>
             </div>
+            {% endfor %}
         </div>
-        {% endif %}
     </div>
 </div>
 
-<div class="row">
+<div class="row mt-4">
     <div class="col-md-6">
-        <div class="card">
+        <!-- Subir Video -->
+        <div class="card mb-4">
             <div class="card-header">
                 <h5>Subir Nuevo Video</h5>
             </div>
             <div class="card-body">
-                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                <form id="upload-form" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <input type="file" class="form-control" name="file" accept=".mp4,.avi,.mov,.mkv" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="progress" style="height: 25px;">
+                            <div id="upload-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%">0%</div>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Subir Video</button>
                 </form>
             </div>
         </div>
 
-        <div class="card mt-4">
+        <!-- Videos Disponibles -->
+        <div class="card">
             <div class="card-header">
                 <h5>Videos Disponibles</h5>
             </div>
@@ -108,26 +63,28 @@
     </div>
 
     <div class="col-md-6">
-        <div class="card">
+        <!-- Herramientas de Procesamiento -->
+        <div class="card mb-4">
             <div class="card-header">
                 <h5>Herramientas de Procesamiento</h5>
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ url_for('process_video1') }}" class="btn btn-outline-primary">
+                    <a href="{{ url_for('process_video1') }}" class="btn btn-outline-primary" id="btn-dividir">
                         Dividir Video Completo
                     </a>
-                    <a href="{{ url_for('corte_1video') }}" class="btn btn-outline-success">
+                    <a href="{{ url_for('corte_1video') }}" class="btn btn-outline-success" id="btn-corte-unico">
                         Corte Único
                     </a>
-                    <a href="{{ url_for('process_video') }}" class="btn btn-outline-info">
+                    <a href="{{ url_for('process_video') }}" class="btn btn-outline-info" id="btn-segmentos">
                         Segmentos desde Punto Específico
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="card mt-4">
+        <!-- Archivos Procesados -->
+        <div class="card">
             <div class="card-header">
                 <h5>Archivos Procesados</h5>
             </div>
@@ -138,11 +95,8 @@
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>{{ file }}</span>
                                 <div>
-                                    <a href="{{ url_for('download_file', filename=file) }}" 
-                                       class="btn btn-sm btn-success">Descargar</a>
-                                    <a href="{{ url_for('delete_file', filename=file) }}" 
-                                       class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('¿Eliminar este archivo?')">Eliminar</a>
+                                    <a href="{{ url_for('download_file', filename=file) }}" class="btn btn-sm btn-success">Descargar</a>
+                                    <a href="{{ url_for('delete_file', filename=file) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar este archivo?')">Eliminar</a>
                                 </div>
                             </div>
                         {% endfor %}
@@ -155,13 +109,75 @@
     </div>
 </div>
 
-<!-- Script para actualizar automáticamente el progreso -->
-{% if active_tasks %}
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// Actualizar automáticamente cada 5 segundos cuando hay tareas activas
-setTimeout(() => {
-    window.location.reload();
-}, 5000);
+    // Función para actualizar progreso de tareas activas
+    function updateProgress(task_id){
+        $.getJSON("/task_progress/" + task_id, function(data){
+            console.log("Progreso tarea " + task_id + ":", data);
+            let percent = 0;
+            if(data.total_segments && data.total_segments > 0){
+                percent = Math.round(data.completed_segments / data.total_segments * 100);
+            }
+            $("#progress-" + task_id).css("width", percent + "%");
+            $("#progress-text-" + task_id).text((data.current_action || 'Procesando...') + " (" + percent + "%)");
+
+        }).fail(function(err){
+            console.error("Error obteniendo progreso " + task_id + ":", err);
+        });
+    }
+
+    {% for task_id, task in active_tasks.items() %}
+    updateProgress("{{ task_id }}");
+    setInterval(() => updateProgress("{{ task_id }}"), 2000);
+    {% endfor %}
+
+    // Subida de video con barra de progreso y logs
+    $('#upload-form').submit(function(e){
+        e.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            xhr: function() {
+                var xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener("progress", function(evt){
+                    if(evt.lengthComputable){
+                        var percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                        $('#upload-progress').css('width', percentComplete + '%').text(percentComplete + '%');
+                        console.log("Subida video:", percentComplete + "%");
+                    }
+                }, false);
+                return xhr;
+            },
+            type: 'POST',
+            url: $(this).attr('action'),
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(data){
+                console.log("Video subido correctamente", data);
+                location.reload();
+            },
+            error: function(err){
+                alert('Error subiendo archivo');
+                console.error("Error subida video:", err);
+            }
+        });
+    });
+
+    // Mostrar logs y evitar redirección 502 en botones de procesamiento
+    $('#btn-dividir, #btn-corte-unico, #btn-segmentos').click(function(e){
+        e.preventDefault();
+        var url = $(this).attr('href');
+        console.log("Procesando video vía AJAX:", url);
+        $.get(url, function(data){
+            console.log("Respuesta procesamiento:", data);
+            alert("Proceso iniciado. Ver tareas activas para el progreso.");
+            location.reload();
+        }).fail(function(err){
+            console.error("Error al iniciar proceso:", err);
+            alert("Error al iniciar proceso. Revisar consola para detalles.");
+        });
+    });
 </script>
-{% endif %}
 {% endblock %}
