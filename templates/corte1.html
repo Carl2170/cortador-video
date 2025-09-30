@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Crear Corte Único</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Video:</label>
+                        <select name="video_file" class="form-select" required>
+                            <option value="">-- Selecciona un video --</option>
+                            {% for file in video_files %}
+                                <option value="{{ file }}">{{ file }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tiempo de inicio (segundos):</label>
+                        <input type="number" name="start_time" class="form-control" value="305" min="0" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duración del corte (segundos):</label>
+                        <input type="number" name="duration" class="form-control" value="29" min="1" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Crear Corte</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Volver al Inicio</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+env/
+*.pyc
+__pycache__/
+.idea/
+.vscode/
+v/
+*.jpg
+*.png
+*.jpeg
+*.mp4

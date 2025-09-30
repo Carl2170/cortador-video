@@ -1,0 +1,33 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <h2>Pagina index</h2>
+        <div>
+            <form action="{{ url_for('process_video') }}" method="get">
+                <button type="submit">Procesar Video</button>
+            </form>
+
+            <form action="{{ url_for('corte_1video') }}" method="get">
+                <button type="submit">Procesar 1 Video</button>
+            </form>
+        </div>
+        <div>
+            <h2>Crear correo</h2>
+            <form action="{{ url_for('generate_random_email') }}" method="get">
+                <button type="submit">crear correo</button>
+            </form>
+            <form action="{{ url_for('check_inbox') }}" method="get">
+                <button type="submit">ver correos</button>
+            </form>
+            <form action="{{ url_for('get_message_details') }}" method="get">
+                <button type="submit">ver correo</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
