@@ -31,4 +31,4 @@ ENV FLASK_APP=app1.py
 ENV FLASK_ENV=production
 
 # Comando para ejecutar la aplicación
-CMD ["python", "app1.py"]
+CMD ["sh", "-c", "flask run --host=0.0.0.0"]

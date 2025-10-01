@@ -298,3 +298,7 @@ def cleanup_completed():
 # --- Nota ---
 # No se debe ejecutar app.run() en Render.
 # Render utilizará Gunicorn según Procfile.
+
+if __name__ == '__main__':
+    # Ejecutar la aplicación en modo de depuración
+    app.run(debug=True)
