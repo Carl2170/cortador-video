@@ -136,17 +136,38 @@ function deleteProcessed(filename){
 }
 
 // Subir archivo
+// Subir archivo con barra de progreso
 $('#uploadBtn').click(function(){
     let fileInput = $('#fileUpload')[0];
     if(fileInput.files.length === 0) return alert('Selecciona un archivo');
+    
     let formData = new FormData();
     formData.append('file', fileInput.files[0]);
+
+    // Crear barra de progreso
+    $('#uploadStatus').html(`
+        <div class="progress">
+            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+        </div>
+    `);
+
     $.ajax({
         url: '/upload',
         type: 'POST',
         data: formData,
         processData: false,
         contentType: false,
+        xhr: function(){
+            let xhr = new window.XMLHttpRequest();
+            // Progreso de subida
+            xhr.upload.addEventListener("progress", function(evt){
+                if(evt.lengthComputable){
+                    let percent = Math.round((evt.loaded / evt.total) * 100);
+                    $('#uploadProgressBar').css('width', percent + '%').text(percent + '%');
+                }
+            }, false);
+            return xhr;
+        },
         success: function(res){
             if(res.ok){
                 $('#uploadStatus').html(`<div class="alert alert-success">✅ Subido: ${res.filename}</div>`);
@@ -155,20 +176,32 @@ $('#uploadBtn').click(function(){
                 $('#uploadStatus').html(`<div class="alert alert-danger">❌ Error: ${res.error}</div>`);
             }
         },
-        error: function(e){
+        error: function(){
             $('#uploadStatus').html(`<div class="alert alert-danger">❌ Error al subir archivo</div>`);
         }
     });
 });
+
 
 // Iniciar Split
 $('#startSplitBtn').click(function(){
     let video_file = $('#splitVideoSelect').val();
     let start_time = $('#splitStart').val();
     let segment_duration = $('#splitDuration').val();
-    $.post('/start_split', {video_file, start_time, segment_duration}, function(res){
-        if(res.ok) addTaskBox(res.task_id, res.video_file);
-        else alert(res.error);
+
+    $.ajax({
+        url: '/start_split',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            video_file: video_file,
+            start_time: start_time,
+            segment_duration: segment_duration
+        }),
+        success: function(res){
+            if(res.ok) addTaskBox(res.task_id, res.video_file);
+            else alert(res.error);
+        }
     });
 });
 
@@ -177,11 +210,23 @@ $('#startCutBtn').click(function(){
     let video_file = $('#cutVideoSelect').val();
     let start_time = $('#cutStart').val();
     let duration = $('#cutDuration').val();
-    $.post('/start_cut', {video_file, start_time, duration}, function(res){
-        if(res.ok) addTaskBox(res.task_id, res.video_file);
-        else alert(res.error);
+
+    $.ajax({
+        url: '/start_cut',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            video_file: video_file,
+            start_time: start_time,
+            duration: duration
+        }),
+        success: function(res){
+            if(res.ok) addTaskBox(res.task_id, res.video_file);
+            else alert(res.error);
+        }
     });
 });
+
 
 // Agregar tarea
 function addTaskBox(task_id, video_file){
