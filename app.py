@@ -95,46 +95,56 @@ def worker_split(task_id, video_path, start_time=0, segment_duration=29):
         'start_time': datetime.now().isoformat()
     }
     save_progress(task_id, progress)
+
     try:
+        logging.info(f"[{task_id}] Abriendo video: {video_path}")
         with VideoFileClip(video_path) as video:
             duration = int(video.duration)
-            temp_start = start_time
-            total_segments = 0
-            while temp_start < duration:
-                total_segments += 1
-                temp_start += segment_duration
+            logging.info(f"[{task_id}] Duración total: {duration}s")
+
+            # Calcular total de segmentos
+            total_segments = (duration - start_time + segment_duration - 1) // segment_duration
             progress['total_segments'] = total_segments
             save_progress(task_id, progress)
+            logging.info(f"[{task_id}] Total segmentos: {total_segments}")
 
             start = start_time
-            idx = 1
-            while start < duration:
+            for idx in range(1, total_segments + 1):
                 end = min(start + segment_duration, duration)
                 progress['current_action'] = f'Procesando segmento {idx}/{total_segments} ({start}s-{end}s)'
                 save_progress(task_id, progress)
+                logging.info(f"[{task_id}] {progress['current_action']}")
 
                 out_name = f'part_{task_id}_{idx}.mp4'
                 out_path = os.path.join(PROCESSED_FOLDER, out_name)
-                clip = video.subclip(start, end)
-                clip.write_videofile(out_path, codec='libx264', verbose=False, logger=None)
-                clip.close()
 
-                progress['segment_files'].append(out_name)
-                progress['completed_segments'] = idx
-                save_progress(task_id, progress)
+                try:
+                    clip = video.subclip(start, end)
+                    # Mostrar logs de moviepy para debug
+                    clip.write_videofile(out_path, codec='libx264', verbose=True, logger='bar')
+                    clip.close()
+                    progress['segment_files'].append(out_name)
+                    progress['completed_segments'] = idx
+                    save_progress(task_id, progress)
+                    logging.info(f"[{task_id}] Segmento {idx} completado: {out_name}")
+                except Exception as e_seg:
+                    logging.error(f"[{task_id}] Error en segmento {idx}: {e_seg}")
+                    progress['segment_files'].append(f"ERROR_{out_name}")
+                    save_progress(task_id, progress)
 
                 start += segment_duration
-                idx += 1
 
         progress['status'] = 'completed'
-        progress['current_action'] = 'Completado'
+        progress['current_action'] = 'Todos los segmentos procesados ✅'
         progress['end_time'] = datetime.now().isoformat()
         save_progress(task_id, progress)
+        logging.info(f"[{task_id}] Finalizado correctamente")
 
     except Exception as e:
-        logging.error(f"[{task_id}] Error worker_split: {e}")
+        logging.error(f"[{task_id}] Error general worker_split: {e}")
         traceback.print_exc()
         progress['status'] = 'error'
+        progress['current_action'] = 'Error en procesamiento ❌'
         progress['error'] = str(e)
         save_progress(task_id, progress)
 
