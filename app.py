@@ -40,7 +40,6 @@ def get_video_files():
     files = []
     for ext in ALLOWED_EXTENSIONS:
         files.extend(glob.glob(os.path.join(UPLOAD_FOLDER, f"*.{ext}")))
-        files.extend(glob.glob(f"*.{ext}"))
     return sorted(list({os.path.basename(f) for f in files}))
 
 def get_processed_files():
@@ -296,7 +295,6 @@ def cleanup_completed():
         traceback.print_exc()
         return jsonify({'ok': False, 'error': str(e)}), 500
 
-# --- Run ---
-# --- No ejecutar app.run() en Render ---
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# --- Nota ---
+# No se debe ejecutar app.run() en Render.
+# Render utilizará Gunicorn según Procfile.
