@@ -297,7 +297,7 @@ def cleanup_completed():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 # --- Run ---
-if __name__ == "__main__":
+# --- No ejecutar app.run() en Render ---
+if __name__ == "__main__" and os.environ.get("FLASK_ENV") == "development":
     port = int(os.environ.get("PORT", 5000))
-    debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"
-    app.run(host="0.0.0.0", port=port, debug=debug_mode)
+    app.run(host="0.0.0.0", port=port, debug=True)
