@@ -1,343 +1,223 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container">
-  <div class="row my-3">
-    <div class="col-md-6">
-      <h4>Subir nuevo video</h4>
-      <form id="upload-form" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
-        <div class="mb-2">
-          <input type="file" name="file" class="form-control" accept=".mp4,.avi,.mov,.mkv" required>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard de Procesamiento de Videos</title>
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<style>
+body {
+    background-color: #f8f9fa;
+}
+h1, h2 { color: #2c3e50; }
+.progress { height: 25px; }
+.card-task { margin-bottom: 15px; }
+.video-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 10px; border-radius: 8px; background-color: #e9ecef; }
+.video-actions button { margin-left: 5px; }
+</style>
+</head>
+<body>
+
+<div class="container my-4">
+    <h1 class="text-center mb-4">Dashboard de Procesamiento de Videos</h1>
+
+    <!-- 1. Subir Video -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            Subir Video Base
         </div>
-        <div class="mb-2">
-          <div class="progress" style="height: 24px;">
-            <div id="upload-progress" class="progress-bar" role="progressbar" style="width:0%">0%</div>
-          </div>
-        </div>
-        <button class="btn btn-primary">Subir</button>
-      </form>
-
-      <hr/>
-
-      <h5>Videos disponibles</h5>
-      <ul id="uploads-list" class="list-group mb-3">
-        {% for f in video_files %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span>{{ f }}</span>
-          <div>
-            <button class="btn btn-sm btn-danger btn-delete-upload" data-fname="{{ f }}">Eliminar</button>
-          </div>
-        </li>
-        {% else %}
-        <li class="list-group-item text-muted">No hay videos subidos</li>
-        {% endfor %}
-      </ul>
-    </div>
-
-    <div class="col-md-6">
-      <h4>Procesamiento</h4>
-
-      <!-- Form: dividir video completo -->
-      <div class="card mb-2">
         <div class="card-body">
-          <h6>Dividir Video Completo</h6>
-          <div class="mb-2">
-            <select id="split_full_video" class="form-select mb-2">
-              {% for f in video_files %}
-                <option value="{{ f }}">{{ f }}</option>
-              {% endfor %}
-            </select>
-            <input id="split_full_duration" type="number" class="form-control mb-2" value="29" min="1">
-            <button id="btn-split-full" class="btn btn-outline-primary">Iniciar división completa</button>
-          </div>
+            <input type="file" id="fileUpload" class="form-control mb-2">
+            <button id="uploadBtn" class="btn btn-success">Subir Video</button>
+            <div id="uploadStatus" class="mt-2"></div>
         </div>
-      </div>
+    </div>
 
-      <!-- Form: cortar desde punto -->
-      <div class="card mb-2">
+    <!-- 2. Cortes por Segmentos -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            Cortes por Segmentos
+        </div>
         <div class="card-body">
-          <h6>Segmentos desde punto específico</h6>
-          <select id="split_from_video" class="form-select mb-2">
-            {% for f in video_files %}
-              <option value="{{ f }}">{{ f }}</option>
-            {% endfor %}
-          </select>
-          <input id="split_from_start" type="number" class="form-control mb-2" value="0" min="0" placeholder="start (s)">
-          <input id="split_from_duration" type="number" class="form-control mb-2" value="29" min="1" placeholder="segment duration (s)">
-          <button id="btn-split-from" class="btn btn-outline-info">Iniciar división desde punto</button>
+            <label>Video base:</label>
+            <select id="splitVideoSelect" class="form-select mb-2"></select>
+            <label>Inicio (s):</label>
+            <input type="number" id="splitStart" value="0" class="form-control mb-2">
+            <label>Duración por corte (s):</label>
+            <input type="number" id="splitDuration" value="29" class="form-control mb-2">
+            <button id="startSplitBtn" class="btn btn-primary">Iniciar Corte por Segmentos</button>
         </div>
-      </div>
+    </div>
 
-      <!-- Form: corte único -->
-      <div class="card mb-2">
+    <!-- 3. Corte Único -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-warning text-white">
+            Corte Único
+        </div>
         <div class="card-body">
-          <h6>Corte único</h6>
-          <select id="cut_single_video" class="form-select mb-2">
-            {% for f in video_files %}
-              <option value="{{ f }}">{{ f }}</option>
-            {% endfor %}
-          </select>
-          <input id="cut_single_start" type="number" class="form-control mb-2" value="0" min="0" placeholder="start (s)">
-          <input id="cut_single_dur" type="number" class="form-control mb-2" value="29" min="1" placeholder="duration (s)">
-          <button id="btn-cut-single" class="btn btn-outline-success">Cortar único</button>
+            <label>Video base:</label>
+            <select id="cutVideoSelect" class="form-select mb-2"></select>
+            <label>Inicio (s):</label>
+            <input type="number" id="cutStart" value="0" class="form-control mb-2">
+            <label>Duración (s):</label>
+            <input type="number" id="cutDuration" value="29" class="form-control mb-2">
+            <button id="startCutBtn" class="btn btn-warning">Iniciar Corte Único</button>
         </div>
-      </div>
-
     </div>
-  </div>
 
-  <hr/>
-
-  <div class="row my-3">
-    <div class="col-md-12">
-      <h4>Tareas activas</h4>
-      <div id="active-tasks">
-        {% for task_id, task in active_tasks.items() %}
-          <div class="card mb-2 task-card" id="task-{{ task_id }}">
-            <div class="card-body">
-              <strong>{{ task.task_name }}</strong> — {{ task.video_file }}
-              <div class="progress my-2" style="height:22px">
-                <div id="pb-{{ task_id }}" class="progress-bar" role="progressbar" style="width: {{ ((task.completed_segments|default(0)) / (task.total_segments|default(1)) * 100) if task.total_segments|default(0) > 0 else 0 }}%">
-                  <!-- barra -->
-                </div>
-              </div>
-              <div><small id="pt-{{ task_id }}">{{ task.current_action|default('...') }} ({{ task.completed_segments|default(0) }}/{{ task.total_segments|default(0) }})</small></div>
-            </div>
-          </div>
-        {% else %}
-          <div class="text-muted">No hay tareas activas</div>
-        {% endfor %}
-      </div>
-      <button id="btn-cleanup" class="btn btn-sm btn-outline-secondary mt-2">Limpiar completadas</button>
+    <!-- 4. Progreso de Tareas -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            Progreso de Tareas
+        </div>
+        <div class="card-body" id="tasksContainer">
+            <!-- Las tareas activas aparecerán aquí -->
+        </div>
     </div>
-  </div>
 
-  <hr/>
-
-  <div class="row my-3">
-    <div class="col-md-12">
-      <h4>Archivos procesados</h4>
-      <ul id="processed-list" class="list-group">
-        {% for f in processed_files %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span>{{ f }}</span>
-          <div>
-            <a class="btn btn-sm btn-success" href="{{ url_for('download_file', filename=f) }}">Descargar</a>
-            <button class="btn btn-sm btn-danger btn-delete-processed" data-fname="{{ f }}">Eliminar</button>
-          </div>
-        </li>
-        {% else %}
-        <li class="list-group-item text-muted">No hay archivos procesados</li>
-        {% endfor %}
-      </ul>
+    <!-- 5. Videos Procesados -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-success text-white">
+            Videos Procesados
+        </div>
+        <div class="card-body" id="processedContainer">
+            <!-- Los videos procesados aparecerán aquí -->
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- Scripts (jQuery) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-function fetchFilesAndUpdateUI(){
-  $.getJSON("{{ url_for('api_files') }}", function(data){
-    // update uploads list
-    let uploads = data.video_files || [];
-    let uploadsList = $("#uploads-list");
-    uploadsList.empty();
-    if(uploads.length === 0){
-      uploadsList.append('<li class="list-group-item text-muted">No hay videos subidos</li>');
-    } else {
-      uploads.forEach(f => {
-        uploadsList.append(`<li class="list-group-item d-flex justify-content-between align-items-center"><span>${f}</span><div><button class="btn btn-sm btn-danger btn-delete-upload" data-fname="${f}">Eliminar</button></div></li>`);
-      });
-    }
-    // processed
-    let processed = data.processed_files || [];
-    let processedList = $("#processed-list");
-    processedList.empty();
-    if(processed.length === 0){
-      processedList.append('<li class="list-group-item text-muted">No hay archivos procesados</li>');
-    } else {
-      processed.forEach(f => {
-        processedList.append(`<li class="list-group-item d-flex justify-content-between align-items-center"><span>${f}</span><div><a class="btn btn-sm btn-success" href="/download/${f}">Descargar</a> <button class="btn btn-sm btn-danger btn-delete-processed" data-fname="${f}">Eliminar</button></div></li>`);
-      });
-    }
-  });
+let taskIntervals = {};
+
+// Refrescar selects de videos
+function refreshVideoSelects() {
+    $.get('/api/files', function(data) {
+        $('#splitVideoSelect, #cutVideoSelect').empty();
+        data.video_files.forEach(v => {
+            $('#splitVideoSelect, #cutVideoSelect').append(`<option value="${v}">${v}</option>`);
+        });
+        refreshProcessedList();
+    });
 }
 
-// Upload form with progress
-$("#upload-form").submit(function(e){
-  e.preventDefault();
-  var form = $(this)[0];
-  var data = new FormData(form);
-  $.ajax({
-    xhr: function() {
-      var xhr = new window.XMLHttpRequest();
-      xhr.upload.addEventListener("progress", function(evt){
-        if(evt.lengthComputable){
-          var percent = Math.round((evt.loaded / evt.total) * 100);
-          $("#upload-progress").css("width", percent + "%").text(percent + "%");
-          console.log("Upload:", percent + "%");
+// Refrescar lista de videos procesados
+function refreshProcessedList() {
+    $.get('/api/files', function(data){
+        $('#processedContainer').empty();
+        data.processed_files.forEach(f => {
+            $('#processedContainer').append(`
+                <div class="video-item">
+                    <div>${f}</div>
+                    <div class="video-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="downloadFile('${f}')">Descargar</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProcessed('${f}')">Eliminar</button>
+                    </div>
+                </div>
+            `);
+        });
+    });
+}
+
+// Descargar video
+function downloadFile(filename){ window.location = `/download/${filename}`; }
+
+// Eliminar video procesado
+function deleteProcessed(filename){
+    $.post(`/delete_processed/${filename}`, function(res){
+        if(res.ok) refreshProcessedList();
+        else alert(res.error);
+    });
+}
+
+// Subir archivo
+$('#uploadBtn').click(function(){
+    let fileInput = $('#fileUpload')[0];
+    if(fileInput.files.length === 0) return alert('Selecciona un archivo');
+    let formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    $.ajax({
+        url: '/upload',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(res){
+            if(res.ok){
+                $('#uploadStatus').html(`<div class="alert alert-success">✅ Subido: ${res.filename}</div>`);
+                refreshVideoSelects();
+            }else{
+                $('#uploadStatus').html(`<div class="alert alert-danger">❌ Error: ${res.error}</div>`);
+            }
+        },
+        error: function(e){
+            $('#uploadStatus').html(`<div class="alert alert-danger">❌ Error al subir archivo</div>`);
         }
-      }, false);
-      return xhr;
-    },
-    url: $(this).attr("action"),
-    type: 'POST',
-    data: data,
-    processData: false,
-    contentType: false,
-    success: function(res){
-      console.log("Upload success", res);
-      alert("Video subido correctamente");
-      fetchFilesAndUpdateUI();
-      // reset progress
-      $("#upload-progress").css("width","0%").text("0%");
-    },
-    error: function(err){
-      console.error("Upload error", err);
-      alert("Error subiendo archivo. Revisa la consola.");
-    }
-  });
+    });
 });
 
-// Start tasks
-function startTask(url, payload, onStarted){
-  $.ajax({
-    url: url,
-    method: 'POST',
-    contentType: 'application/json',
-    data: JSON.stringify(payload),
-    success: function(res){
-      console.log("Task started:", res);
-      if(res.ok && res.task_id){
-        if(onStarted) onStarted(res);
-      } else {
-        alert("No se pudo iniciar la tarea: " + (res.error || "error"));
-      }
-    },
-    error: function(err){
-      console.error("Error starting task", err);
-      alert("Error iniciando tarea. Revisa la consola.");
-    }
-  });
-}
-
-$("#btn-split-full").click(function(){
-  const video = $("#split_full_video").val();
-  const dur = parseInt($("#split_full_duration").val() || "29");
-  startTask("{{ url_for('start_split_full') }}", { video_file: video, segment_duration: dur }, function(res){
-    addTaskCardAndPoll(res.task_id, res.video_file);
-  });
+// Iniciar Split
+$('#startSplitBtn').click(function(){
+    let video_file = $('#splitVideoSelect').val();
+    let start_time = $('#splitStart').val();
+    let segment_duration = $('#splitDuration').val();
+    $.post('/start_split_from', {video_file, start_time, segment_duration}, function(res){
+        if(res.ok) addTaskBox(res.task_id, res.video_file);
+        else alert(res.error);
+    });
 });
 
-$("#btn-split-from").click(function(){
-  const video = $("#split_from_video").val();
-  const start = parseInt($("#split_from_start").val() || "0");
-  const dur = parseInt($("#split_from_duration").val() || "29");
-  startTask("{{ url_for('start_split_from') }}", { video_file: video, start_time: start, segment_duration: dur }, function(res){
-    addTaskCardAndPoll(res.task_id, res.video_file);
-  });
+// Iniciar Corte Único
+$('#startCutBtn').click(function(){
+    let video_file = $('#cutVideoSelect').val();
+    let start_time = $('#cutStart').val();
+    let duration = $('#cutDuration').val();
+    $.post('/start_cut_single', {video_file, start_time, duration}, function(res){
+        if(res.ok) addTaskBox(res.task_id, res.video_file);
+        else alert(res.error);
+    });
 });
 
-$("#btn-cut-single").click(function(){
-  const video = $("#cut_single_video").val();
-  const start = parseInt($("#cut_single_start").val() || "0");
-  const dur = parseInt($("#cut_single_dur").val() || "29");
-  startTask("{{ url_for('start_cut_single') }}", { video_file: video, start_time: start, duration: dur }, function(res){
-    addTaskCardAndPoll(res.task_id, res.video_file);
-  });
-});
-
-function addTaskCardAndPoll(taskId, video_file){
-  if($("#task-" + taskId).length === 0){
-    $("#active-tasks").prepend(`
-      <div class="card mb-2 task-card" id="task-${taskId}">
-        <div class="card-body">
-          <strong id="task-name-${taskId}">Tarea</strong> — ${video_file}
-          <div class="progress my-2" style="height:22px">
-            <div id="pb-${taskId}" class="progress-bar" role="progressbar" style="width:0%"></div>
-          </div>
-          <div><small id="pt-${taskId}">Iniciando... (0/0)</small></div>
+// Agregar tarea
+function addTaskBox(task_id, video_file){
+    if($('#task_' + task_id).length) return;
+    $('#tasksContainer').append(`
+        <div class="card card-task" id="task_${task_id}">
+            <div class="card-body">
+                <h5 class="card-title">${video_file}</h5>
+                <div class="progress mb-2">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress_${task_id}" style="width:0%">0%</div>
+                </div>
+                <div id="status_${task_id}">Iniciando...</div>
+            </div>
         </div>
-      </div>
     `);
-  }
-
-  // Polling loop
-  let poll = setInterval(function(){
-    $.getJSON("/task_progress/" + taskId, function(data){
-      console.log("Poll", taskId, data);
-      let percent = 0;
-      if(data.total_segments && data.total_segments > 0){
-        percent = Math.round((data.completed_segments / data.total_segments) * 100);
-      } else if(data.total_segments === 0 && data.status === 'processing'){
-        // show spinner-ish - keep 0
-        percent = 0;
-      }
-
-      $("#pb-" + taskId).css("width", percent + "%");
-      $("#pt-" + taskId).text((data.current_action || 'Procesando...') + ` (${data.completed_segments||0}/${data.total_segments||0})`);
-
-      if(data.status === 'completed' || data.status === 'error'){
-        clearInterval(poll);
-        if(data.status === 'completed'){
-          $("#pt-" + taskId).text("✅ Completado");
-        } else {
-          $("#pt-" + taskId).text("❌ Error: " + (data.error||''));
-          $("#pb-" + taskId).css("background","red");
-        }
-        // refresh lists
-        fetchFilesAndUpdateUI();
-      }
-    }).fail(function(err){
-      console.error("Error polling", err);
-    });
-  }, 1500);
+    taskIntervals[task_id] = setInterval(()=>updateTaskProgress(task_id), 1000);
 }
 
-// Delete processed file
-$(document).on('click', '.btn-delete-processed', function(){
-  const f = $(this).data('fname');
-  if(!confirm('Eliminar ' + f + '?')) return;
-  $.post(`/delete_processed/${encodeURIComponent(f)}`, function(res){
-    if(res.ok) fetchFilesAndUpdateUI();
-    else alert('Error: ' + (res.error||''));
-  }).fail(function(err){
-    alert('Error borrando archivo. Ver consola.');
-    console.error(err);
-  });
-});
-
-// Delete upload
-$(document).on('click', '.btn-delete-upload', function(){
-  const f = $(this).data('fname');
-  if(!confirm('Eliminar upload ' + f + '?')) return;
-  $.post(`/delete_upload/${encodeURIComponent(f)}`, function(res){
-    if(res.ok) fetchFilesAndUpdateUI();
-    else alert('Error: ' + (res.error||''));
-  }).fail(function(err){
-    alert('Error borrando upload. Ver consola.');
-    console.error(err);
-  });
-});
-
-$("#btn-cleanup").click(function(){
-  $.post("{{ url_for('cleanup_completed') }}", function(res){
-    console.log("Cleanup", res);
-    // remove completed cards
-    fetchFilesAndUpdateUI();
-    $(".task-card").each(function(){
-      const tid = $(this).attr('id').replace('task-','');
-      // check progress
-      $.getJSON("/task_progress/" + tid, function(data){
-        if(data.status === 'completed' || data.status === 'error'){
-          $("#task-" + tid).remove();
+// Actualizar progreso de tarea
+function updateTaskProgress(task_id){
+    $.get(`/task_progress/${task_id}`, function(res){
+        if(!res.status) return;
+        let percent = 0;
+        if(res.total_segments) percent = Math.round((res.completed_segments/res.total_segments)*100);
+        $('#progress_' + task_id).css('width', percent + '%').text(percent + '%');
+        $('#status_' + task_id).text(res.current_action + (res.status==='completed'?' ✅':res.status==='error'?' ❌':''));
+        if(res.status==='completed' || res.status==='error'){
+            clearInterval(taskIntervals[task_id]);
+            refreshProcessedList();
         }
-      });
     });
-  });
-});
+}
 
-// initial load
-fetchFilesAndUpdateUI();
+// Inicializar
+refreshVideoSelects();
 </script>
-{% endblock %}
+
+</body>
+</html>
