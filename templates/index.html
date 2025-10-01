@@ -166,7 +166,7 @@ $('#startSplitBtn').click(function(){
     let video_file = $('#splitVideoSelect').val();
     let start_time = $('#splitStart').val();
     let segment_duration = $('#splitDuration').val();
-    $.post('/start_split_from', {video_file, start_time, segment_duration}, function(res){
+    $.post('/start_split', {video_file, start_time, segment_duration}, function(res){
         if(res.ok) addTaskBox(res.task_id, res.video_file);
         else alert(res.error);
     });
@@ -177,7 +177,7 @@ $('#startCutBtn').click(function(){
     let video_file = $('#cutVideoSelect').val();
     let start_time = $('#cutStart').val();
     let duration = $('#cutDuration').val();
-    $.post('/start_cut_single', {video_file, start_time, duration}, function(res){
+    $.post('/start_cut', {video_file, start_time, duration}, function(res){
         if(res.ok) addTaskBox(res.task_id, res.video_file);
         else alert(res.error);
     });
