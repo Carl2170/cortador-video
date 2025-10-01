@@ -31,4 +31,7 @@ ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
 # Comando para ejecutar la aplicación
-CMD ["sh", "-c", "flask --app app --debug run --host=0.0.0.0"]
+# xCMD ["sh", "-c", "flask --app app --debug run --host=0.0.0.0"]
+
+# Render inyecta PORT automáticamente
+CMD ["gunicorn", "app:app", "--workers=1", "--threads=2", "--timeout", "0", "--bind", "0.0.0.0:$PORT"]
