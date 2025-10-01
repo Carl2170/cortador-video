@@ -27,8 +27,8 @@ RUN mkdir -p uploads processed
 EXPOSE 5000
 
 # Variable de entorno para Flask
-ENV FLASK_APP=app1.py
+ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 
 # Comando para ejecutar la aplicación
-CMD ["sh", "-c", "flask run --host=0.0.0.0"]
+CMD ["sh", "-c", "flask --app app --debug run --host=0.0.0.0"]
