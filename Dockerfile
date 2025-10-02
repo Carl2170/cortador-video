@@ -34,4 +34,4 @@ ENV FLASK_ENV=production
 # xCMD ["sh", "-c", "flask --app app --debug run --host=0.0.0.0"]
 
 # Render inyecta PORT automáticamente
-CMD ["gunicorn", "app:app", "--workers=1", "--threads=2", "--timeout", "0", "--bind", "0.0.0.0:$PORT"]
+CMD ["gunicorn", "app:app", "--workers=1", "--threads=2", "--timeout", "0", "--bind", "0.0.0.0:5000"]
